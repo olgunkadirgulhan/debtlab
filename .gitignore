@@ -1,0 +1,6 @@
+youtube/out/
+youtube/client_secret.json
+*.part
+__pycache__/
+.env
+youtube/secrets.local.env

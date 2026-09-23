@@ -1,0 +1,82 @@
+"""YouTube Data API v3 upload using a stored refresh token (no browser needed)."""
+import os
+
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+from googleapiclient.http import MediaFileUpload
+
+SCOPES = ["https://www.googleapis.com/auth/youtube.upload", "https://www.googleapis.com/auth/youtube"]
+QUOTA_REASONS = {"quotaExceeded", "uploadLimitExceeded", "dailyLimitExceeded", "rateLimitExceeded"}
+
+
+class QuotaError(Exception):
+    pass
+
+
+def configured():
+    return all(os.environ.get(k) for k in ("YT_CLIENT_ID", "YT_CLIENT_SECRET", "YT_REFRESH_TOKEN"))
+
+
+def _client():
+    creds = Credentials(
+        token=None,
+        refresh_token=os.environ["YT_REFRESH_TOKEN"],
+        client_id=os.environ["YT_CLIENT_ID"],
+        client_secret=os.environ["YT_CLIENT_SECRET"],
+        token_uri="https://oauth2.googleapis.com/token",
+        scopes=SCOPES,
+    )
+    return build("youtube", "v3", credentials=creds, cache_discovery=False)
+
+
+class WrongChannelError(Exception):
+    pass
+
+
+def current_channel():
+    items = _client().channels().list(part="id,snippet", mine=True).execute().get("items", [])
+    if not items:
+        raise WrongChannelError("token has no YouTube channel")
+    return items[0]["id"], items[0]["snippet"]["title"]
+
+
+def check_channel():
+    """Refuses to upload unless the token belongs to YT_CHANNEL_ID.
+
+    The Gmail also owns another (viral) channel; a token made for the wrong
+    channel must never upload there.
+    """
+    expected = (os.environ.get("YT_CHANNEL_ID") or "").strip()
+    cid, title = current_channel()
+    if not expected:
+        raise WrongChannelError(f"YT_CHANNEL_ID secret is not set (token is for '{title}' {cid})")
+    if cid != expected:
+        raise WrongChannelError(f"token is for '{title}' ({cid}), expected {expected}")
+    return title
+
+
+def upload(path, title, description, tags, privacy):
+    body = {
+        "snippet": {
+            "title": title[:100],
+            "description": description[:5000],
+            "tags": tags,
+            "categoryId": "27",  # Education
+            "defaultLanguage": "en",
+            "defaultAudioLanguage": "en",
+        },
+        "status": {"privacyStatus": privacy, "selfDeclaredMadeForKids": False},
+    }
+    media = MediaFileUpload(str(path), mimetype="video/mp4", chunksize=-1, resumable=True)
+    try:
+        req = _client().videos().insert(part="snippet,status", body=body, media_body=media)
+        resp = None
+        while resp is None:
+            _, resp = req.next_chunk(num_retries=3)
+        return resp["id"]
+    except HttpError as e:
+        reasons = {d.get("reason") for d in (e.error_details or []) if isinstance(d, dict)}
+        if reasons & QUOTA_REASONS or "quota" in str(e).lower():
+            raise QuotaError(str(e)) from e
+        raise
