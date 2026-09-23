@@ -42,22 +42,29 @@ def validate(script, facts):
     return problems
 
 
+# Tried in order; a busy (503/429) or retired (404) model falls through to the next.
+MODELS = "gemini-3.5-flash,gemini-flash-latest,gemini-flash-lite-latest,gemini-3.5-flash-lite"
+
+
 def gemini(prompt):
     key = os.environ.get("GEMINI_API_KEY")
     if not key:
         raise RuntimeError("GEMINI_API_KEY not set")
-    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    models = [m.strip() for m in (os.environ.get("GEMINI_MODELS") or MODELS).split(",") if m.strip()]
     body = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": 0.9}}
-    for attempt in range(3):
-        r = requests.post(url, json=body, headers={"x-goog-api-key": key}, timeout=60)
-        if r.status_code in (429, 500, 503):
-            time.sleep(10 * (attempt + 1))
-            continue
-        r.raise_for_status()
-        parts = r.json()["candidates"][0]["content"]["parts"]
-        return "".join(p.get("text", "") for p in parts).strip()
-    raise RuntimeError(f"Gemini unavailable: {r.status_code}")
+    errors = []
+    for attempt in range(2):
+        for model in models:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+            r = requests.post(url, json=body, headers={"x-goog-api-key": key}, timeout=90)
+            if r.status_code == 200:
+                parts = r.json()["candidates"][0]["content"]["parts"]
+                return "".join(p.get("text", "") for p in parts if not p.get("thought")).strip()
+            errors.append(f"{model}:{r.status_code}")
+            if r.status_code not in (404, 429, 500, 503):
+                r.raise_for_status()
+        time.sleep(20)
+    raise RuntimeError(f"Gemini unavailable: {', '.join(errors)}")
 
 
 def clean(text):
