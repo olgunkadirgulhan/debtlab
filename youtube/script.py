@@ -46,7 +46,7 @@ def validate(script, facts):
 MODELS = "gemini-3.5-flash,gemini-flash-latest,gemini-flash-lite-latest,gemini-3.5-flash-lite"
 
 
-def gemini(prompt):
+def gemini(prompt, timeout=90):
     key = os.environ.get("GEMINI_API_KEY")
     if not key:
         raise RuntimeError("GEMINI_API_KEY not set")
@@ -56,7 +56,11 @@ def gemini(prompt):
     for attempt in range(2):
         for model in models:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-            r = requests.post(url, json=body, headers={"x-goog-api-key": key}, timeout=90)
+            try:
+                r = requests.post(url, json=body, headers={"x-goog-api-key": key}, timeout=timeout)
+            except requests.RequestException as e:
+                errors.append(f"{model}:{type(e).__name__}")
+                continue
             if r.status_code == 200:
                 parts = r.json()["candidates"][0]["content"]["parts"]
                 return "".join(p.get("text", "") for p in parts if not p.get("thought")).strip()

@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: shorts
+  group: repo-writes
   cancel-in-progress: false
 
 jobs:

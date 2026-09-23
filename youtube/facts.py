@@ -78,7 +78,8 @@ def _snowball(p):
     c = dm.snowball_vs_avalanche(p["debts"], p["budget"])
     total = sum(d["balance"] for d in p["debts"])
     winner = "avalanche" if c["interest_diff"] > 0 else "snowball" if c["interest_diff"] < 0 else "tie"
-    named = lambda n: n if n.startswith("Card") else f"the {n.lower()}"  # noqa: E731
+    # "Card A" / "Visa" keep their case; generic two-word names read as "the store card"
+    named = lambda n: n if n.startswith("Card") else f"the {n.lower()}" if " " in n else f"the {n}"  # noqa: E731
     facts = {
         "debts": [f"{d['name']}: {money(d['balance'])} at {d['apr']}%" for d in p["debts"]],
         "total_debt": money(total),
