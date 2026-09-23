@@ -4,3 +4,4 @@ youtube/client_secret.json
 __pycache__/
 .env
 youtube/secrets.local.env
+.wrangler/
