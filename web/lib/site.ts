@@ -1,7 +1,7 @@
 import links from "./generated/links.json";
 import videos from "./generated/videos.json";
 
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://debtlab.pages.dev").replace(/\/$/, "");
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://debtlabai.com").replace(/\/$/, "");
 export const SITE_NAME = "DebtLab";
 export const SITE_TAGLINE = "Pay off debt faster. See exactly when.";
 
