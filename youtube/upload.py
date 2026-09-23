@@ -78,6 +78,12 @@ def locked_videos(video_ids):
     return bad
 
 
+def add_to_playlist(playlist_id, video_id):
+    _client().playlistItems().insert(part="snippet", body={
+        "snippet": {"playlistId": playlist_id, "resourceId": {"kind": "youtube#video", "videoId": video_id}},
+    }).execute()
+
+
 def upload(path, title, description, tags, privacy):
     body = {
         "snippet": {

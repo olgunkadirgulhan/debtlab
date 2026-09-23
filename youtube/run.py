@@ -85,6 +85,11 @@ def record_published(topic, video_id, privacy, source):
         })
 
 
+def playlists():
+    p = HERE / "playlists.json"
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+
+
 def queued():
     QUEUE.mkdir(exist_ok=True)
     items = []
@@ -234,6 +239,12 @@ def main():
         if qpath:
             qpath.unlink(missing_ok=True)
         log(f"uploaded https://youtube.com/shorts/{vid} ({mode})")
+        playlist = playlists().get(topic["pillar"])
+        if playlist and mode == "public":
+            try:
+                upload.add_to_playlist(playlist, vid)
+            except Exception as e:  # never fail a run over a playlist
+                log(f"playlist add skipped: {e}")
 
     sys.exit(1 if failed or locked else 0)
 
