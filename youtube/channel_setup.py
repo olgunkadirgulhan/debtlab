@@ -27,6 +27,8 @@ New Shorts every day:
 
 Every number in every video comes from a real payoff calculation. No hype, no guarantees.
 
+Free debt calculators (snowball, avalanche, credit card payoff): https://debtlabai.com
+
 Educational only. Not financial advice. Not affiliated with any bank, lender or credit bureau."""
 
 KEYWORDS = (
