@@ -4,7 +4,6 @@ description: "Compare debt snowball vs debt avalanche using real math. Learn how
 date: 2026-09-23
 keyword: "debt snowball vs debt avalanche"
 calculator: /calculators/debt-avalanche/
-draft: true
 faq:
   - q: "Which method is cheaper for paying off debt?"
     a: "In our scenario, the cheaper method is avalanche, which saves an interest difference of $208. The total avalanche interest paid is $3,708, while the snowball interest is $3,916. Choosing this strategy allows you to become debt-free in 2 years and 7 months."
