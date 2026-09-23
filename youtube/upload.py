@@ -56,6 +56,28 @@ def check_channel():
     return title
 
 
+def locked_videos(video_ids):
+    """Public uploads that YouTube has since made private or rejected.
+
+    Unaudited API projects can have their uploads forced to private; this is how
+    we notice without anyone checking Studio.
+    """
+    if not video_ids:
+        return []
+    items = _client().videos().list(part="status", id=",".join(video_ids[:50])).execute().get("items", [])
+    found = {i["id"]: i["status"] for i in items}
+    bad = []
+    for vid in video_ids:
+        s = found.get(vid)
+        if s is None:
+            bad.append((vid, "removed"))
+        elif s.get("uploadStatus") in ("rejected", "failed"):
+            bad.append((vid, f"{s['uploadStatus']}: {s.get('rejectionReason') or s.get('failureReason')}"))
+        elif s.get("privacyStatus") != "public":
+            bad.append((vid, s.get("privacyStatus")))
+    return bad
+
+
 def upload(path, title, description, tags, privacy):
     body = {
         "snippet": {

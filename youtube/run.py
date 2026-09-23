@@ -176,6 +176,19 @@ def main():
             gh_annotation("error", f"channel check failed, nothing uploaded: {e}")
             raise SystemExit(1)
 
+    locked = []
+    if mode == "public":
+        recent = [r["video_id"] for r in published_rows() if r["privacy"] == "public"][-10:]
+        try:
+            locked = upload.locked_videos(recent)
+        except Exception as e:
+            log(f"public check skipped: {e}")
+        if locked:
+            gh_annotation("error", "YouTube made public uploads private (likely needs the API audit): "
+                          + ", ".join(f"{v} ({why})" for v, why in locked))
+        else:
+            log(f"public check ok ({len(recent)} recent videos still public)")
+
     jobs = []
     if args.topic:
         jobs.append((topics[args.topic], None, None, None))
@@ -222,7 +235,7 @@ def main():
             qpath.unlink(missing_ok=True)
         log(f"uploaded https://youtube.com/shorts/{vid} ({mode})")
 
-    sys.exit(1 if failed else 0)
+    sys.exit(1 if failed or locked else 0)
 
 
 if __name__ == "__main__":
