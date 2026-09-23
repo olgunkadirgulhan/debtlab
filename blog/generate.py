@@ -2,9 +2,9 @@
 
     keyword -> scenario (same math as the videos) -> Gemini article (JSON) -> number check -> markdown
 
-The first REVIEW_FIRST articles are saved with `draft: true` (hidden on the
-site) so a human reads them before they go live, as the plan requires.
-Delete the `draft: true` line to publish one.
+Articles publish immediately. Set BLOG_REVIEW_FIRST=N to save the first N
+with `draft: true` (hidden on the site) for human review; delete that line to
+publish one.
 
     python blog/generate.py            # next unused keyword
     python blog/generate.py --dry-run  # print, don't write
@@ -26,7 +26,7 @@ import script as scriptlib  # noqa: E402
 POSTS = ROOT / "web" / "content" / "blog"
 KEYWORDS = Path(__file__).resolve().parent / "keywords.csv"
 PUBLISHED = ROOT / "youtube" / "published.csv"
-REVIEW_FIRST = int(os.environ.get("BLOG_REVIEW_FIRST") or 10)
+REVIEW_FIRST = int(os.environ.get("BLOG_REVIEW_FIRST") or 0)
 
 CALC = {
     "min_trap": "/calculators/credit-card-payoff/",
