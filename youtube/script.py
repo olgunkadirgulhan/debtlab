@@ -43,7 +43,9 @@ def validate(script, facts):
 
 
 # Tried in order; a busy (503/429) or retired (404) model falls through to the next.
-MODELS = "gemini-3.5-flash,gemini-flash-latest,gemini-flash-lite-latest,gemini-3.5-flash-lite"
+# The flash models share one capacity pool and are often busy together; lite and gemma usually answer.
+MODELS = ("gemini-3.5-flash,gemini-3.8-flash,gemini-flash-latest,gemini-3.7-flash,gemini-3-flash-preview,"
+          "gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemma-4-26b-a4b-it,gemma-4-31b-it")
 
 
 def gemini(prompt, timeout=90):
@@ -62,12 +64,18 @@ def gemini(prompt, timeout=90):
                 errors.append(f"{model}:{type(e).__name__}")
                 continue
             if r.status_code == 200:
-                parts = r.json()["candidates"][0]["content"]["parts"]
-                return "".join(p.get("text", "") for p in parts if not p.get("thought")).strip()
+                cands = r.json().get("candidates") or [{}]
+                parts = cands[0].get("content", {}).get("parts", [])
+                text = "".join(p.get("text", "") for p in parts if not p.get("thought")).strip()
+                if text:
+                    return text
+                errors.append(f"{model}:empty")
+                continue
             errors.append(f"{model}:{r.status_code}")
             if r.status_code not in (404, 429, 500, 503):
                 r.raise_for_status()
-        time.sleep(20)
+        if attempt == 0:
+            time.sleep(60)  # every model busy: spikes usually pass within a minute or two
     raise RuntimeError(f"Gemini unavailable: {', '.join(errors)}")
 
 
