@@ -84,12 +84,17 @@ def add_to_playlist(playlist_id, video_id):
     }).execute()
 
 
+def clean(s):
+    """YouTube rejects the upload (invalidTitle / invalidDescription) if these contain < or >."""
+    return s.replace("->", "→").replace("<", "").replace(">", "")
+
+
 def upload(path, title, description, tags, privacy):
     body = {
         "snippet": {
-            "title": title[:100],
-            "description": description[:5000],
-            "tags": tags,
+            "title": clean(title)[:100],
+            "description": clean(description)[:4900],
+            "tags": [clean(t) for t in tags],
             "categoryId": "27",  # Education
             "defaultLanguage": "en",
             "defaultAudioLanguage": "en",
